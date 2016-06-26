@@ -1,25 +1,98 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: 'Reproducible Research: Peer Assessment 1'
+author: "Wicitra Mahotama"
+date: "June 25, 2016"
+output: html_document
+keep_md: true
 ---
-
 
 ## Loading and preprocessing the data
 
+Load the data and assign to the object "raw". Then check the dimension, head, and structure of the data.
 
+```{r}
+raw <- read.csv("activity.csv")
+dim(raw)
+head(raw)
+str(raw)
+```
 
-## What is mean total number of steps taken per day?
+## What is the mean total number of steps taken per day?
 
+Aggregate the steps by date, then calculate the sum. 
+Next, calculate the average number of steps taken per day.
 
+```{r}
+steps.day <- aggregate(data = raw, steps~date,sum)
+head(steps.day)
+avg.steps.day <- mean(steps.day$steps, na.rm=TRUE)
+print(avg.steps.day)
+```
 
 ## What is the average daily activity pattern?
 
+Aggregate the steps by interval, then calculate the mean. 
+Next, create a plot with interval on the x-axis and steps on the y axis.
 
+```{r}
+steps.interval <- aggregate(data = raw, steps~interval,mean)
+plot(steps.interval$interval,steps.interval$steps, xlab = "Time Interval", ylab = "Number of Steps", main = "Average Daily Activity")
+```
 
 ## Imputing missing values
 
+Replace NA values with the average number of steps based on the interval at which the NA value occurs.
 
+```{r}
+test <- is.na(raw$steps)
+yes <- steps.interval$steps[match(raw$interval,steps.interval$interval)]
+no <- raw$steps
+
+steps.imputed <- ifelse(test,yes,no)
+```
+
+Update the data to include imputed missing values
+
+```{r}
+data.imputed <- transform(raw,steps = steps.imputed)
+```
+
+Check to see if there are any missing values in steps column. There are no missing values if the result is 0 (zero)
+
+```{r}
+sum(is.na(data.imputed$steps))
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+Create a new column to store the day of the week.
+```{r}
+data.imputed$day <- weekdays(as.Date(data.imputed$date))
+```
+
+Create a new column which classifies the day of the week into two categories, weekday or weekend.
+```{r}
+weekday <- c("Monday","Tuesday","Wednesday","Thursday","Friday")
+classification <- ifelse(is.element(data.imputed$day,weekday),"Weekday","Weekend")
+data.imputed$dow <- as.factor(classification)
+```
+
+Subset data by weekend and weekday classification
+```{r}
+weekday.data <- subset(data.imputed, dow == "Weekday")
+weekend.data <- subset(data.imputed, dow == "Weekend")
+
+str(weekday.data)
+str(weekend.data)
+```
+
+Calculate the activity patterns during the weekdays and weekends
+```{r}
+par(mfrow=c(1,2))
+
+weekday.activity <- aggregate(data = weekday.data, steps~interval,mean)
+weekday.plot <- plot(weekday.activity$interval,weekday.activity$steps, xlab = "Time Interval", ylab = "Number of Steps", ylim = c(0,250), main = "Average Weekday Activity")
+
+weekend.activity <- aggregate(data = weekend.data, steps~interval,mean)
+weekend.plot <- plot(weekend.activity$interval,weekend.activity$steps, xlab = "Time Interval", ylab = "Number of Steps", ylim = c(0,250), main = "Average Weekend Activity")
+```
